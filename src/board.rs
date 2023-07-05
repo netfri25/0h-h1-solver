@@ -1,8 +1,6 @@
-// TODO: BoardBuilder
-
 use std::fmt;
 
-#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
+#[derive(Default, PartialEq, Eq, Clone, Copy)]
 pub enum Cell {
     #[default]
     Empty,
@@ -10,10 +8,22 @@ pub enum Cell {
     Blue,
 }
 
+impl fmt::Debug for Cell {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut ansi_color = |text, color| write!(f, "{}{}\x1b[0m", color, text);
+
+        match self {
+            Self::Empty => ansi_color("E", "\x1b[37m"),
+            Self::Red => ansi_color("R", "\x1b[31m"),
+            Self::Blue => ansi_color("B", "\x1b[34m"),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Board {
     size: usize,
-    cells: Vec<Cell>,
+    cells: Vec<Cell>, // cells.len == size * size
 }
 
 impl fmt::Debug for Board {
@@ -28,9 +38,13 @@ impl fmt::Debug for Board {
 
 impl Board {
     pub fn new(size: usize) -> Self {
-        assert!(size % 2 == 0, "size should be an even integer number");
+        debug_assert!(size % 2 == 0, "size should be an even integer number");
         let cells = vec![Cell::Empty; size * size];
         Self { size, cells }
+    }
+
+    pub fn builder(size: usize) -> BoardBuilder {
+        BoardBuilder::new(size)
     }
 
     pub const fn size(&self) -> usize {
@@ -54,123 +68,28 @@ impl Board {
     pub fn unset(&mut self, row: usize, col: usize) {
         self.set(row, col, Cell::Empty)
     }
+}
 
-    pub fn is_valid(&self) -> bool {
-        let mut last = Cell::Empty;
-        let mut matching_lasts = 0;
+#[derive(Debug)]
+pub struct BoardBuilder {
+    board: Board,
+}
 
-        // column-wise checking for adjacent cells
-        for row in 0..self.size() {
-            for col in 0..self.size() {
-                let cell = self.at(row, col).unwrap();
+impl BoardBuilder {
+    pub fn new(size: usize) -> Self {
+        debug_assert!(size % 2 == 0, "size should be an even integer number");
+        let board = Board::new(size);
+        Self { board }
+    }
 
-                if *cell == Cell::Empty {
-                    continue;
-                }
+    // when insertion fails, it just ignores it
+    pub fn insert(&mut self, row: usize, col: usize, cell: Cell) -> &mut Self {
+        self.board.set(row, col, cell);
+        self
+    }
 
-                if *cell == last {
-                    matching_lasts += 1;
-                } else {
-                    matching_lasts = 1;
-                    last = *cell;
-                }
-
-                // three adjacent cells with the same color isn't valod
-                if matching_lasts >= 3 {
-                    return false;
-                }
-            }
-
-            // clear for the next iteration
-            last = Cell::Empty;
-            matching_lasts = 0;
-        }
-
-        // row-wise checking for adjacent cells
-        for col in 0..self.size() {
-            for row in 0..self.size() {
-                let cell = self.at(row, col).unwrap();
-                if *cell == Cell::Empty {
-                    continue;
-                }
-
-                if *cell == last {
-                    matching_lasts += 1;
-                } else {
-                    matching_lasts = 0;
-                    last = *cell;
-                }
-
-                if matching_lasts >= 3 {
-                    return false;
-                }
-            }
-
-            // clear for the next iteration
-            last = Cell::Empty;
-            matching_lasts = 0;
-        }
-
-        // similar rows checking
-        for row1 in 0..self.size() {
-            'next_row: for row2 in row1 + 1..self.size() {
-                for col in 0..self.size() {
-                    let cell1 = self.at(row1, col).unwrap();
-                    let cell2 = self.at(row2, col).unwrap();
-                    if *cell1 == Cell::Empty || *cell2 == Cell::Empty || cell1 != cell2 {
-                        continue 'next_row;
-                    }
-                }
-                return false;
-            }
-        }
-
-        // similar columns checking
-        for col1 in 0..self.size() {
-            'next_col: for col2 in col1 + 1..self.size() {
-                for row in 0..self.size() {
-                    let cell1 = self.at(row, col1).unwrap();
-                    let cell2 = self.at(row, col2).unwrap();
-                    if *cell1 == Cell::Empty || *cell2 == Cell::Empty || cell1 != cell2 {
-                        continue 'next_col;
-                    }
-                }
-                return false;
-            }
-        }
-
-        // even amounts in each row
-        'next_row: for row in 0..self.size() {
-            let mut sum = 0;
-            for col in 0..self.size() {
-                let cell = self.at(row, col).unwrap();
-                sum += match cell {
-                    Cell::Empty => continue 'next_row,
-                    Cell::Red => -1,
-                    Cell::Blue => 1,
-                };
-            }
-            if sum != 0 {
-                return false;
-            }
-        }
-
-        // even amounts in each row
-        'next_col: for col in 0..self.size() {
-            let mut sum = 0;
-            for row in 0..self.size() {
-                let cell = self.at(row, col).unwrap();
-                sum += match cell {
-                    Cell::Empty => continue 'next_col,
-                    Cell::Red => -1,
-                    Cell::Blue => 1,
-                };
-            }
-            if sum != 0 {
-                return false;
-            }
-        }
-
-        true
+    // will be optimized by rust, so no need to worry about cloning
+    pub fn build(&mut self) -> Board {
+        self.board.clone()
     }
 }
