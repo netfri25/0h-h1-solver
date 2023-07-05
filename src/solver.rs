@@ -1,27 +1,27 @@
 
 use crate::board::{Board, Cell};
 
-pub trait Solver<const SIZE: usize> {
+pub trait Solver {
     // true on success, false on failure
-    fn solve(&mut self, board: &mut Board<SIZE>) -> bool;
+    fn solve(&mut self, board: &mut Board) -> bool;
 }
 
 
 pub struct SimpleSolver;
 
-impl<const SIZE: usize> Solver<SIZE> for SimpleSolver {
-    fn solve(&mut self, board: &mut Board<SIZE>) -> bool {
+impl Solver for SimpleSolver {
+    fn solve(&mut self, board: &mut Board) -> bool {
         Self::rec_solve(board, 0, 0)
     }
 }
 
 impl SimpleSolver {
-    fn rec_solve<const SIZE: usize>(board: &mut Board<SIZE>, row: usize, col: usize) -> bool {
-        if col >= SIZE {
+    fn rec_solve(board: &mut Board, row: usize, col: usize) -> bool {
+        if col >= board.size() {
             return Self::rec_solve(board, row+1, 0);
         }
 
-        if row >= SIZE {
+        if row >= board.size() {
             return true;
         }
 
