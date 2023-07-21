@@ -13,7 +13,7 @@ impl fmt::Debug for Cell {
         let mut ansi_color = |text, color| write!(f, "{}{}\x1b[0m", color, text);
 
         match self {
-            Self::Empty => ansi_color("E", "\x1b[37m"),
+            Self::Empty => ansi_color("_", "\x1b[37m"),
             Self::Red => ansi_color("R", "\x1b[31m"),
             Self::Blue => ansi_color("B", "\x1b[34m"),
         }
@@ -39,6 +39,7 @@ impl fmt::Debug for Board {
 impl Board {
     pub fn new(size: usize) -> Self {
         debug_assert!(size % 2 == 0, "size should be an even integer number");
+        debug_assert!(size > 0, "size should be a natural number (integer bigger than 0)");
         let cells = vec![Cell::Empty; size * size];
         Self { size, cells }
     }
@@ -77,7 +78,6 @@ pub struct BoardBuilder {
 
 impl BoardBuilder {
     pub fn new(size: usize) -> Self {
-        debug_assert!(size % 2 == 0, "size should be an even integer number");
         let board = Board::new(size);
         Self { board }
     }
